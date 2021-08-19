@@ -214,7 +214,7 @@ func TestReadFormatV1(t *testing.T) {
 // 2) []byte loaded chunks <-> []byte loaded chunks
 func TestRoundtripV2(t *testing.T) {
 	for _, enc := range testEncoding {
-		for _, version := range []byte{chunkFormatV2, chunkFormatV3} {
+		for _, version := range []byte{chunkFormatV2, chunkFormatV3, chunkFormatV5} {
 			t.Run(enc.String(), func(t *testing.T) {
 				t.Parallel()
 

@@ -32,6 +32,8 @@ const (
 	chunkFormatV1
 	chunkFormatV2
 	chunkFormatV3
+	chunkFormatV4
+	chunkFormatV5
 
 	DefaultChunkFormat = chunkFormatV3 // the currently used chunk format
 
@@ -259,7 +261,7 @@ func (hb *headBlock) LoadBytes(b []byte) error {
 		return errors.Wrap(db.err(), "verifying headblock header")
 	}
 	switch version {
-	case chunkFormatV1, chunkFormatV2, chunkFormatV3:
+	case chunkFormatV1, chunkFormatV2, chunkFormatV3, chunkFormatV5:
 	default:
 		return errors.Errorf("incompatible headBlock version (%v), only V1,V2,V3 is currently supported", version)
 	}
@@ -345,7 +347,7 @@ func NewByteChunk(b []byte, blockSize, targetSize int) (*MemChunk, error) {
 	switch version {
 	case chunkFormatV1:
 		bc.encoding = EncGZIP
-	case chunkFormatV2, chunkFormatV3:
+	case chunkFormatV2, chunkFormatV3, chunkFormatV4, chunkFormatV5:
 		// format v2+ has a byte for block encoding.
 		enc := Encoding(db.byte())
 		if db.err() != nil {
@@ -380,7 +382,7 @@ func NewByteChunk(b []byte, blockSize, targetSize int) (*MemChunk, error) {
 
 		// Read offset and length.
 		blk.offset = db.uvarint()
-		if version == chunkFormatV3 {
+		if version >= chunkFormatV3 {
 			blk.uncompressedSize = db.uvarint()
 		}
 		l := db.uvarint()
@@ -439,7 +441,7 @@ func (c *MemChunk) BytesSize() int {
 		size += binary.MaxVarintLen64 // mint
 		size += binary.MaxVarintLen64 // maxt
 		size += binary.MaxVarintLen32 // offset
-		if c.format == chunkFormatV3 {
+		if c.format >= chunkFormatV3 {
 			size += binary.MaxVarintLen32 // uncompressed size
 		}
 		size += binary.MaxVarintLen32 // len(b)
@@ -513,7 +515,7 @@ func (c *MemChunk) WriteTo(w io.Writer) (int64, error) {
 		eb.putVarint64(b.mint)
 		eb.putVarint64(b.maxt)
 		eb.putUvarint(b.offset)
-		if c.format == chunkFormatV3 {
+		if c.format >= chunkFormatV3 {
 			eb.putUvarint(b.uncompressedSize)
 		}
 		eb.putUvarint(len(b.b))
